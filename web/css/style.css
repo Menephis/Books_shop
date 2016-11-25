@@ -1,0 +1,28 @@
+*{
+    margin: 0;
+}
+body{
+    height: 100%;
+}
+.all{
+    height: 1000px;
+    background-color: burlywood;
+}
+#header{
+    background-color: aqua;
+    height: 20%;
+    width: 100%
+}
+#content{
+    background-color: bisque;
+    height: 70%;
+    width: 100%;
+}
+#footer{
+    background-color: forestgreen;
+    height: 10%;
+    width: 100%;
+}
+.blocks{
+    float: left;
+}
