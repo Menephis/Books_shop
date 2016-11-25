@@ -1,0 +1,27 @@
+{
+    "name": "kurapov/books_shop",
+    "homepage": "https://github.com/Menephis/Books_shop",
+    "description": "Books shop by Kurapov Pavel",
+    "type": "Project",
+    "require": {
+        "php": ">=5.3",
+        "silex/silex": "~2.0",
+        "kurapov/kurapov_validate": ">0",
+        "symfony/security": "^3.1",
+        "doctrine/dbal": "2.5.*"
+    },
+    "license": "nope",
+    "authors": [
+        {
+            "name": "kurapov Pavel",
+            "email": "spawnrus56@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "app\\classes\\": "app/classes",
+            "src\\": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
