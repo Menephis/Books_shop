@@ -28,9 +28,9 @@
                             $row = $category['row'];
                         }
                         ?>
-                        <li><a href="/book-shop/web/test/<?= $category['category_id']?>"><?= $category['name_category']?></a></li>
+                        <li><a href="/books-shop/web/test/<?= $category['category_id']?>"><?= $category['name_category']?></a></li>
                    <?php }?>
-            </div>
+                </div>
             <div class="blocks">
                <ol>
                 <?php

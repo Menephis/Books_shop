@@ -17,5 +17,7 @@
         </p>
         <input type="submit">
     </form>
+    <hr />
+
 </body>
 </html>

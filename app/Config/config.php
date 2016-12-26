@@ -6,7 +6,7 @@ const DB_PASS = "1231";
 
 $config = [
     'dbs' => [
-        'dbname' => 'mydb',
+        'dbname' => 'books_shop',
         'user' => 'Admin',
         'password' => '1231',
         'host' => 'localhost',
@@ -14,7 +14,7 @@ $config = [
     ],
     'paths' => [
         'path.to.templates' => __DIR__ . '/../../src/Templates',
-        'path.to.web' => '/book-shop/web',
+        'path.to.web' => '/books-shop/web',
     ]
 ]
 ?>

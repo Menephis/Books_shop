@@ -6,7 +6,7 @@
     "require": {
         "php": ">=5.3",
         "silex/silex": "~2.0",
-        "kurapov/kurapov_validate": ">0",
+        "kurapov/kurapov_validate": "dev-master",
         "symfony/security": "^3.1",
         "doctrine/dbal": "2.5.*"
     },

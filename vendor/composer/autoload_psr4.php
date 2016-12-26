@@ -7,6 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'src\\' => array($baseDir . '/src'),
+    'kurapov\\kurapov_validate\\' => array($vendorDir . '/kurapov/kurapov_validate'),
     'app\\classes\\' => array($baseDir . '/app/classes'),
     'Symfony\\Polyfill\\Util\\' => array($vendorDir . '/symfony/polyfill-util'),
     'Symfony\\Polyfill\\Php70\\' => array($vendorDir . '/symfony/polyfill-php70'),

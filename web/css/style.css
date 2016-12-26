@@ -9,18 +9,18 @@ body{
     background-color: burlywood;
 }
 #header{
-    background-color: aqua;
+    background-color: coral;
     height: 20%;
     width: 100%
 }
 #content{
     background-color: bisque;
-    height: 70%;
+    height: 60%;
     width: 100%;
 }
 #footer{
-    background-color: forestgreen;
-    height: 10%;
+    background-color: darkkhaki;
+    height: 20%;
     width: 100%;
 }
 .blocks{

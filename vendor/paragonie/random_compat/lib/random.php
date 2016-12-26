@@ -150,7 +150,7 @@ if (PHP_VERSION_ID < 70000) {
             // Prevent this code from hanging indefinitely on non-Windows;
             // see https://bugs.php.net/bug.php?id=69833
             if (
-                DIRECTORY_SEPARATOR !== '/' ||
+                DIRECTORY_SEPARATOR !== '/' || 
                 (PHP_VERSION_ID <= 50609 || PHP_VERSION_ID >= 50613)
             ) {
                 // See random_bytes_mcrypt.php
