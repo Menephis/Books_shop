@@ -4,6 +4,10 @@
 <body>
     <form enctype="multipart/form-data" action="" method="POST">
         <p>
+            <label for="updateBook">Books ID for update</label>
+            <input type="text" name="updateBook" />
+        </p>
+        <p>
             <label for="BookName">Имя книги</label>
             <input type="text" name="BookName" />
         </p>

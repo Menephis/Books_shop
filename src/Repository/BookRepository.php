@@ -2,6 +2,8 @@
 namespace src\Repository;
 
 use \Doctrine\DBAL\DBALException;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\File\File;
 
 class BookRepository
 {
@@ -30,8 +32,8 @@ class BookRepository
         try
         {
             $queryBuilder = $this->connection->createQueryBuilder();
-            $query = $queryBuilder
-                ->select('b.book_id', 'b.book_name', 'b.description', 'b.price')
+            $queryBuilder
+                ->select('b.book_id', 'b.book_name', 'b.description', 'b.price', 'b.preview_img')
                 ->from('books', 'b')
                 ->innerJoin('b', 'categories_has_books', 'c_h_b', 'b.book_id = c_h_b.books_book_id')
                 ->innerJoin('c_h_b', 'categories', 'c', 'c.category_id = c_h_b.categories_category_id')
@@ -40,8 +42,7 @@ class BookRepository
                 ->andWhere('c.right_key <= p.right_key')
                 ->setFirstResult($firstPos)
                 ->setMaxResults($limit);
-            //echo $query;
-            $stmt = $this->connection->prepare($query);
+            $stmt = $this->connection->prepare($queryBuilder);
             $stmt->bindValue(1, $IdCategory);
             $stmt->execute();
             $books = $stmt->fetchAll();
@@ -74,38 +75,139 @@ class BookRepository
         }
     }
     /**
-    * Add book to DB
+    * Add book to DB 
+    *
+    * This method keeping synchronisation between filesystem that store images and DB, for create new record. ONLY jpeg type
     *
     * @param string $bookName
     * @param string $bookDes
     * @param string $bookPrice
+    * @param UploadedFile $image - file which we will be moved. Image must be JPG type
+    * @param string $destinationPath - destination directory for move
     *
     * @return boolean - successeful/failed
     */
-    public function saveBook(string $bookName, string $bookDes, string $bookPrice)
+    public function saveBook(string $bookName, string $bookDes, int $bookPrice, UploadedFile $image, string $destinationPath)
+    {
+        try
+        {   
+            // Set hierarchy subdirectories for image and new name
+            $directory = substr(md5(microtime()), mt_rand(0, 30), 2) . DIRECTORY_SEPARATOR . substr(md5(microtime()), mt_rand(0, 30), 2);
+            $imageName = md5(microtime()) . ".jpg";
+            // Creating record in database
+            $queryBuilder = $this->connection->createQueryBuilder();
+            $queryBuilder
+                ->insert('books')
+                ->values(
+                    [
+                        'book_name' => ':name',
+                        'description' => ':des',
+                        'price' => ':price',
+                        'preview_img' => ':img',
+                    ]
+                );
+            $this->connection->beginTransaction();
+            $stmt = $this->connection->prepare($queryBuilder);
+            $stmt->bindValue('name', $bookName);
+            $stmt->bindValue('des', $bookDes);
+            $stmt->bindValue('price', $bookPrice);
+            $stmt->bindValue('img', $directory . DIRECTORY_SEPARATOR . $imageName);
+            $stmt->execute();
+            $image->move($destinationPath . DIRECTORY_SEPARATOR . $directory, $imageName);
+            $this->connection->commit();
+            return true;
+        }catch(\Exception $exception)
+        {
+            $this->connection->rollback();
+            throw $exception;
+        }
+    }
+    /**
+    * Delete book
+    *
+    * This method keeping synchronisation between filesystem that store images and DB, for delete record
+    *
+    * @param int $bookId
+    * @param string $pathToImages
+    *
+    * @return boolean - successufully or not
+    */
+    public function deleteBook(int $bookId, string $pathToImages)
+    {
+        try
+        {   
+            $this->connection->beginTransaction();
+            $image = $this->connection->fetchColumn('SELECT b.preview_img FROM books b WHERE b.book_id = ?', array($bookId), 0);
+            if ( ! $image )
+                throw new \Exception("Book with id $bookId doesn't exist");
+            $x = $this->connection->delete('books', array('book_id' => $bookId));
+            if( ! @unlink($pathToImages . $image))
+                throw new \Exception("Can't delete file");
+            $this->connection->commit(); 
+            return true;
+        }catch(\Exception $exception)
+        {
+            $this->connection->rollback();
+            throw $exception;
+        }
+    }
+    /*
+    * Update book
+    * This method keeping synchronisation between filesystem that store images and DB, for update record. ONLY jpeg type
+    *
+    * @param integer $bookId
+    * @param string $bookName
+    * @param string $bookDes
+    * @param string $bookPrice
+    * @param UploadedFile $image - file which we will be moved
+    * @param string $pathToImages - path to images directory for move
+    *
+    * @return boolean - successefully or not 
+    */
+    public function updateBook(int $bookId, string $bookName, string $bookDes, int $bookPrice, UploadedFile $image = null , string $pathToImages = null)
     {
         try
         {
             $queryBuilder = $this->connection->createQueryBuilder();
-            $query = $queryBuilder
-                ->insert('books')
-                ->values(
-                    [
-                        'book_name' => '?',
-                        'description' => '?',
-                        'price' => '?'
-                    ]
-                );
-                $stmt = $this->connection->prepare($query);
-                $stmt->bindValue(1, $bookName);
-                $stmt->bindValue(2, $bookDes);
-                $stmt->bindValue(3, $bookPrice);
-                if($stmt->execute())
-                    echo "SUCCESSEFULL";
-        }catch(DBALException $exception)
+            $queryBuilder
+                ->update('books', 'b')
+                ->set('b.book_name', ':name')
+                ->set('b.description', ':des')
+                ->set('b.price', ':price')
+                ->where('b.book_id = :id');
+            if ($image){
+                $queryBuilder->set('b.preview_img', ':img');
+                // Set hierarchy subdirectories for image and new name
+                $directory = substr(md5(microtime()), mt_rand(0, 30), 2) . DIRECTORY_SEPARATOR . substr(md5(microtime()), mt_rand(0, 30), 2);
+                $imageName = md5(microtime()) . ".jpg";
+                $this->connection->beginTransaction();
+                $oldImage = $this->connection->fetchColumn('SELECT b.preview_img FROM books b WHERE book_id = ?', array($bookId), 0);
+                if ( ! $oldImage )
+                    throw new \Exception("Book with id $bookId doesn't exist");
+                $stmt = $this->connection->prepare($queryBuilder);
+                $stmt->bindValue('img', $directory . DIRECTORY_SEPARATOR . $imageName);
+            }else{
+                $this->connection->beginTransaction();
+                $stmt = $this->connection->prepare($queryBuilder);
+            }
+            $stmt->bindValue('name', $bookName);
+            $stmt->bindValue('des', $bookDes);
+            $stmt->bindValue('price', $bookPrice);
+            $stmt->bindValue('id', $bookId);
+            $stmt->execute();
+            if($image){
+                if( ! @unlink($pathToImages . $oldImage))
+                    throw new \Exception("Can't delete file");
+                $image->move($pathToImages . DIRECTORY_SEPARATOR . $directory, $imageName);
+            }
+            $this->connection->commit();
+            return true;
+        }catch(\Exception $exception)
         {
+            $this->connection->rollback();
             throw $exception;
         }
+
     }
     /**
     * Add category to categories

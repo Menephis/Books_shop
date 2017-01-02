@@ -15,7 +15,7 @@ class RepositoryServiceProvider extends AbstractServiceProvider{
     protected function getServices(){
         return [
             'BookRepository',
-            'TemplateEngine'
+            'TemplateEngine',
         ];
     }
     /**

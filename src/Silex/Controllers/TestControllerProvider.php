@@ -7,6 +7,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
 use kurapov\kurapov_validate\Validator\Validator;
 use kurapov\kurapov_validate\Masks\AuthenticationMask;
+use src\ImagesService\Image;
 
 class TestControllerProvider implements ControllerProviderInterface{
     public function connect(Application $app){
@@ -37,12 +38,44 @@ class TestControllerProvider implements ControllerProviderInterface{
             if(($_SERVER['REQUEST_METHOD'] == 'POST')){
                 $price = $request->get('BookPrice');
                 $name = $request->get('BookName');
-                var_dump($_POST);
                 $des = $request->get('BookDes');
-                $db->saveBook($name, $des, $price);
+                $file = $request->files->get('photo');
+                
+                // Запись в базу
+                $db->saveBook($name, $des, (int)$price, $file, $app['config']['paths']['path.to.images']);
             }
-            $categories = $db->getCategories();
             return $templateEngine->render('AddBook');
+        });
+        $controllers->match('/delete', function (Request $request) use($app){
+            /* Определяем сервис с доступом к базе*/
+            $db = $app['book.repository.service']();
+            /* Определяем сервис с шаблонами */
+            $templateEngine = $app['template.engine']();
+            if(($_SERVER['REQUEST_METHOD'] == 'POST')){
+                $id = $request->get('deleteBook');
+                echo $id;
+                $db->deleteBook($id, $app['config']['paths']['path.to.images']);
+            }
+            return $templateEngine->render('deleteBook');
+        });
+        $controllers->match('/update', function (Request $request) use($app){
+            /* Определяем сервис с доступом к базе*/
+            $db = $app['book.repository.service']();
+            /* Определяем сервис с шаблонами */
+            $templateEngine = $app['template.engine']();
+            if(($_SERVER['REQUEST_METHOD'] == 'POST')){
+                $id = $request->get('updateBook');
+                $price = $request->get('BookPrice');
+                $name = $request->get('BookName');
+                $des = $request->get('BookDes');
+                $file = $request->files->get('photo');
+                // Масштабирование изображения
+                $image = new Image($file->getPathname());
+                $image->resize(300, 300)->save();
+                // UpdateBook
+                $db->updateBook((int)$id, $name, $des, (int)$price, $file, $app['config']['paths']['path.to.images']);
+            }
+            return $templateEngine->render('UpdateBook');
         });
         
         
@@ -70,10 +103,10 @@ class TestControllerProvider implements ControllerProviderInterface{
             $db = $app['book.repository.service']();
             /* Определяем сервис с шаблонами */
             $templateEngine = $app['template.engine']();
-
+            $idCategory = (int)$idCategory != 0 ? $idCategory: $idCategory + 1;
+            echo $idCategory;
             $categories = $db->getCategories();
             $books = $db->getBooksByCat($idCategory, 0, 20);
-            
             
             return $templateEngine->render(
                 'index',

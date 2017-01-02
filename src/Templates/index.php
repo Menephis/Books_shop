@@ -36,7 +36,7 @@
                 <?php
                 foreach($books as $book){
                     echo "
-                        <li><p>" . $book['book_name'] . "</p></li>
+                        <li><p>" . $book['book_name'] . "<br /> <img src='" . $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book['preview_img'] ."'></p></li>
                     ";
                 }
                 ?>
