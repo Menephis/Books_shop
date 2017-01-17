@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: localhost
--- Generation Time: Jan 03, 2017 at 01:22 AM
+-- Generation Time: Jan 17, 2017 at 11:18 AM
 -- Server version: 5.7.16-0ubuntu0.16.04.1
 -- PHP Version: 7.0.12-1+deb.sury.org~xenial+1
 
@@ -426,17 +426,19 @@ CREATE TABLE `feedbacks` (
 
 CREATE TABLE `users` (
   `user_id` int(9) UNSIGNED NOT NULL,
-  `email` varchar(254) NOT NULL
+  `email` varchar(254) NOT NULL,
+  `password` char(60) NOT NULL,
+  `role` enum('ADMIN','USER') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `email`) VALUES
-(5, 'awdaw'),
-(2, 'awdawdawd'),
-(4, 'awdawdawdawd');
+INSERT INTO `users` (`user_id`, `email`, `password`, `role`) VALUES
+(9, 'admin', '$2y$10$ProH7jipE2tXUQF0FNpcR.R0SJOai.wIByMZAdyCK9YJw.zGZXayK', 'ADMIN'),
+(10, 'user1', '$2y$10$/oOl9xqsXRVRJ0qWRqfM/utxsVgOqv7pMTSPOqxeCsbCWcH89cv4m', 'USER'),
+(11, 'user2', '$2y$10$KH8O.0lq3rCeFe/uMOoJkOSik/Da30Q9VL8EfKrSFY5iLpzgQZqEq', 'USER');
 
 --
 -- Triggers `users`
@@ -496,7 +498,19 @@ INSERT INTO `users_log` (`user_log_id`, `user`, `action`, `time`, `users_user_id
 (3, 'root@localhost', 'delete', '2016-12-06 00:34:48', 0),
 (4, 'root@localhost', 'insert', '2016-12-06 05:18:45', 0),
 (5, 'root@localhost', 'insert', '2016-12-19 13:03:44', 4),
-(6, 'root@localhost', 'insert', '2016-12-19 13:22:42', 5);
+(6, 'root@localhost', 'insert', '2016-12-19 13:22:42', 5),
+(7, 'root@localhost', 'delete', '2017-01-06 22:23:15', 5),
+(8, 'root@localhost', 'delete', '2017-01-06 22:23:15', 2),
+(9, 'root@localhost', 'delete', '2017-01-06 22:23:15', 4),
+(10, 'root@localhost', 'insert', '2017-01-06 22:27:29', 6),
+(11, 'root@localhost', 'insert', '2017-01-14 11:12:38', 7),
+(12, 'root@localhost', 'insert', '2017-01-14 11:13:51', 8),
+(13, 'root@localhost', 'delete', '2017-01-16 13:35:42', 6),
+(14, 'root@localhost', 'delete', '2017-01-16 13:35:42', 7),
+(15, 'root@localhost', 'delete', '2017-01-16 13:35:42', 8),
+(16, 'root@localhost', 'insert', '2017-01-16 13:36:42', 9),
+(17, 'root@localhost', 'insert', '2017-01-16 13:38:58', 10),
+(18, 'root@localhost', 'insert', '2017-01-16 13:39:15', 11);
 
 --
 -- Indexes for dumped tables
@@ -583,12 +597,12 @@ ALTER TABLE `feedbacks`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `user_id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 --
 -- AUTO_INCREMENT for table `users_log`
 --
 ALTER TABLE `users_log`
-  MODIFY `user_log_id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `user_log_id` int(9) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 --
 -- Constraints for dumped tables
 --

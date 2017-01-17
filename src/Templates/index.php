@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Book Shop</title>
-        <link rel="stylesheet" href="<?= $this->GetSourse() ?>/css/style.css" type="text/css" media="screen" />
+
+<head>
+    <title>Book Shop</title>
+    <link rel="stylesheet" href="<?= $this->GetSourse() ?>/css/style.css" type="text/css" media="screen" />
 
 
-    </head>
-    <body>
-       <div class="all">
-            <div id="header">
-            </div>
-            <div id="content">
-                <div class="blocks">
-                    <?php
+</head>
+
+<body>
+    <div class="all">
+        <div id="header">
+        </div>
+        <div id="content">
+            <div class="blocks">
+                <?php
                     $row = 0;
                     unset($categories[0]);
                     foreach($categories as $category){
@@ -28,12 +30,16 @@
                             $row = $category['row'];
                         }
                         ?>
-                        <li><a href="/books-shop/web/test/<?= $category['category_id']?>"><?= $category['name_category']?></a></li>
-                   <?php }?>
-                </div>
+                    <li>
+                        <a href="/books-shop/web/test/<?= $category['category_id']?>">
+                            <?= $category['name_category']?>
+                        </a>
+                    </li>
+                    <?php }?>
+            </div>
             <div class="blocks">
-               <ol>
-                <?php
+                <ol>
+                    <?php
                 foreach($books as $book){
                     echo "
                         <li><p>" . $book['book_name'] . "<br /> <img src='" . $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book['preview_img'] ."'></p></li>
@@ -41,10 +47,10 @@
                 }
                 ?>
                 </ol>
-                </div>
-            </div>
-            <div id="footer">
             </div>
         </div>
-    </body>
+        <div id="footer">
+        </div>
+    </div>
+</body>
 <html>

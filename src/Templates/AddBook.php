@@ -1,6 +1,8 @@
 <html>
-    <head></head>
-    <tittle></tittle>
+
+<head></head>
+<tittle></tittle>
+
 <body>
     <form enctype="multipart/form-data" action="" method="POST">
         <p>
@@ -26,4 +28,5 @@
     <hr />
 
 </body>
+
 </html>
