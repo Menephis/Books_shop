@@ -31,7 +31,7 @@
                         }
                         ?>
                     <li>
-                        <a href="/books-shop/web/test/<?= $category['category_id']?>">
+                        <a href="/books-shop/web/catalog/<?= $category['category_id']?>">
                             <?= $category['name_category']?>
                         </a>
                     </li>
@@ -42,7 +42,8 @@
                     <?php
                 foreach($books as $book){
                     echo "
-                        <li><p>" . $book['book_name'] . "<br /> <img src='" . $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book['preview_img'] ."'></p></li>
+                        <li><p><a href='detail/". $book->getId() . "'>" . $book->getName() . "</a><br /> <img src='" . $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book->getImage() ."'></p><br /><span> Цена: " . $book->getPrice() . "</span></li>
+                        
                     ";
                 }
                 ?>

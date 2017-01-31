@@ -4,6 +4,8 @@ namespace src\Silex\Services;
 use Silex\Application;
 use src\Silex\Services\AbstractServiceProvider;
 use src\Repository\BookRepository;
+use src\Repository\BookDetailRepository;
+use src\Repository\CategoryRepository;
 use src\Silex\Views\TemplateEngine;
 
 class RepositoryServiceProvider extends AbstractServiceProvider{
@@ -16,6 +18,8 @@ class RepositoryServiceProvider extends AbstractServiceProvider{
         return [
             'BookRepository',
             'TemplateEngine',
+            'CategoryRepository',
+            'BookDetailRepository',
         ];
     }
     /**
@@ -26,8 +30,32 @@ class RepositoryServiceProvider extends AbstractServiceProvider{
     * @return void
     */
     protected function registerBookRepository(Application $app){
-        $app['book.repository.service'] = $app->protect(function() use($app){
+        $app['book.repository'] = $app->protect(function() use($app){
             return new BookRepository($app['db.connection']);
+        });
+    }
+    /**
+    * Register BookDetailrepository
+    *
+    * @param Application @app
+    *
+    * @return void
+    */
+    protected function registerBookDetailRepository(Application $app){
+        $app['book.detail.repository'] = $app->protect(function() use($app){
+            return new BookDetailRepository($app['db.connection']);
+        });
+    }
+    /**
+    * Register templateEngine
+    *
+    * @param Application @app
+    *
+    * @return void
+    */
+    protected function registerCategoryRepository(Application $app){
+        $app['category.repository'] = $app->protect(function() use($app){
+            return new CategoryRepository($app['db.connection']);
         });
     }
     /**
@@ -42,5 +70,6 @@ class RepositoryServiceProvider extends AbstractServiceProvider{
             return new TemplateEngine($app['config']['paths']['path.to.templates'], $app['config']['paths']['path.to.web']);
         });
     }
+    
 }
 ?>

@@ -3,37 +3,29 @@ namespace src\Repository;
 
 use \Doctrine\DBAL\DBALException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\File\File;
+use src\Domain\Book;
+use src\Repository\FieldDescription;
+use Doctrine\DBAL\Types\Type;
 
-class BookRepository
+class BookRepository extends AbstractRepository
 {
-    /**
-    * @var - resourse $connection - stores connection to DB
-    */
-    protected $connection;
-    /**
-    * @param - resourse $connection
-    */
-    function __construct($connection)
-    {
-        $this->connection = $connection;
-    }
+    const ALLOWED_IMAGE_EXTENSION = array('jpeg', 'jpg');
     /**
     * Get books by category
     *
-    * @param int $IdCategory - category for selection
+    * @param int $idCategory - category for selection
     * @param int $firstPos - position for start selection
     * @param int $limit - limit of selection
     *
     * @return array $books
     */
-    public function getBooksByCat(int $IdCategory, int $firstPos = 0, int $limit = 10): array
+    public function getBooksByCat(int $idCategory, int $firstPos = 0, int $limit = 10)
     {
         try
         {
             $queryBuilder = $this->connection->createQueryBuilder();
             $queryBuilder
-                ->select('b.book_id', 'b.book_name', 'b.description', 'b.price', 'b.preview_img')
+                ->select('b.book_id', 'b.book_name', 'b.authors', 'b.price', 'b.preview_img')
                 ->from('books', 'b')
                 ->innerJoin('b', 'categories_has_books', 'c_h_b', 'b.book_id = c_h_b.books_book_id')
                 ->innerJoin('c_h_b', 'categories', 'c', 'c.category_id = c_h_b.categories_category_id')
@@ -43,32 +35,10 @@ class BookRepository
                 ->setFirstResult($firstPos)
                 ->setMaxResults($limit);
             $stmt = $this->connection->prepare($queryBuilder);
-            $stmt->bindValue(1, $IdCategory);
+            $stmt->bindValue(1, $idCategory);
             $stmt->execute();
             $books = $stmt->fetchAll();
-            return $books;
-        }catch(DBALException $exception)
-        {
-            throw $exception;
-        }
-    }
-    /**
-    * Get all category
-    *
-    * @return array $categories
-    */
-    public function getCategories()
-    {
-        try
-        {
-            $queryBuilder = $this->connection->createQueryBuilder();
-            $query = $queryBuilder
-                ->select('category_id', 'name_category', 'row')
-                ->from('categories')
-                ->addOrderBy('left_key');
-            $stmt = $this->connection->query($query);
-            $categories = $stmt->fetchAll();
-            return $categories;
+            return $this->objectsFromArrayOfAssoc($books);
         }catch(DBALException $exception)
         {
             throw $exception;
@@ -80,42 +50,91 @@ class BookRepository
     * This method keeping synchronisation between filesystem that store images and DB, for create new record. ONLY jpeg type
     *
     * @param string $bookName
-    * @param string $bookDes
+    * @param string $authors
     * @param string $bookPrice
     * @param UploadedFile $image - file which we will be moved. Image must be JPG type
     * @param string $destinationPath - destination directory for move
     *
     * @return boolean - successeful/failed
     */
-    public function saveBook(string $bookName, string $bookDes, int $bookPrice, UploadedFile $image, string $destinationPath)
+    public function saveBook(string $bookName, string $authors, int $bookPrice, UploadedFile $image, int $idCategory, string $destinationPath, string $description, $dateRelease, string $language, int $printing, array $images)
     {
         try
         {   
-            // Set hierarchy subdirectories for image and new name
-            $directory = substr(md5(microtime()), mt_rand(0, 30), 2) . DIRECTORY_SEPARATOR . substr(md5(microtime()), mt_rand(0, 30), 2);
-            $imageName = md5(microtime()) . ".jpg";
+            
+            $imageName = md5(microtime()) . '.' . $this->checkExtension($image);
+            $directory = $this->generatePathToImage();
+            $fullPath = $directory . DIRECTORY_SEPARATOR . $imageName;
+            
+            if(count($images) > 0){
+                $createPaths = function(UploadedFile $someImage){
+                    return $this->generatePathToImage() . DIRECTORY_SEPARATOR . md5(microtime()) . '.' . $this->checkExtension($someImage);
+                };
+                $pathToImages = array_map($createPaths, $images);
+            }else{
+                $pathToImages = array();
+            }
             // Creating record in database
-            $queryBuilder = $this->connection->createQueryBuilder();
-            $queryBuilder
+            $queryBuilderToBooks = $this->connection->createQueryBuilder();
+            $queryBuilderToBooks
                 ->insert('books')
                 ->values(
                     [
                         'book_name' => ':name',
-                        'description' => ':des',
+                        'authors' => ':auth',
                         'price' => ':price',
                         'preview_img' => ':img',
                     ]
                 );
+            $queryBuilderToProperties = $this->connection->createQueryBuilder();
+            $queryBuilderToProperties
+                ->insert('books_properties')
+                ->values(
+                    [
+                        'books_book_id' => ':id',
+                        'description' => ':desc',
+                        'date_of_release' => ':date',
+                        'language' => ':lang',
+                        'printing' => ':print',
+                        'books_img' => ':imgs',
+                    ]
+                );
             $this->connection->beginTransaction();
-            $stmt = $this->connection->prepare($queryBuilder);
+            // First insert
+            $stmt = $this->connection->prepare($queryBuilderToBooks);
             $stmt->bindValue('name', $bookName);
-            $stmt->bindValue('des', $bookDes);
+            $stmt->bindValue('auth', $authors);
             $stmt->bindValue('price', $bookPrice);
-            $stmt->bindValue('img', $directory . DIRECTORY_SEPARATOR . $imageName);
+            $stmt->bindValue('img', $fullPath);
             $stmt->execute();
+            // selecting id book
+            $bookId = $this->connection->lastInsertId();
+            // Second insert
+            unset($stmt);
+            $stmt = $this->connection->prepare($queryBuilderToProperties);
+            $stmt->bindValue('id', $bookId);
+            $stmt->bindValue('desc', $description);
+            $stmt->bindValue('date', $dateRelease);
+            $stmt->bindValue('lang', $language);
+            $stmt->bindValue('print', $printing);
+            $stmt->bindValue('imgs', $this->serializePaths($pathToImages));
+            $stmt->execute();
+            // Third query
+            $this->connection->insert('categories_has_books', array('categories_category_id' => $idCategory, 'books_book_id' => $bookId));
+            // For preview image
             $image->move($destinationPath . DIRECTORY_SEPARATOR . $directory, $imageName);
+            // For galery image
+            foreach($pathToImages as $key => $path){
+                $imgName = basename($path);
+                $dir = str_replace($imgName, '', $path);
+                $images[$key]->move(realpath($destinationPath) . DIRECTORY_SEPARATOR . $dir, $imgName);
+            }
+            
             $this->connection->commit();
             return true;
+        }catch(\InvalidArgumentException $exception)
+        {
+            throw $exception;
         }catch(\Exception $exception)
         {
             $this->connection->rollback();
@@ -137,11 +156,11 @@ class BookRepository
         try
         {   
             $this->connection->beginTransaction();
-            $image = $this->connection->fetchColumn('SELECT b.preview_img FROM books b WHERE b.book_id = ?', array($bookId), 0);
-            if ( ! $image )
+            $image = $this->connection->fetchAssoc('SELECT b.book_id, b.preview_img FROM books b WHERE b.book_id = ?', array($bookId));
+            if ( ! $image['book_id'] )
                 throw new \Exception("Book with id $bookId doesn't exist");
             $x = $this->connection->delete('books', array('book_id' => $bookId));
-            if( ! @unlink($pathToImages . $image))
+            if( ! @unlink($pathToImages . $image['preview_img']) and ! $image['book_id'])
                 throw new \Exception("Can't delete file");
             $this->connection->commit(); 
             return true;
@@ -157,47 +176,70 @@ class BookRepository
     *
     * @param integer $bookId
     * @param string $bookName
-    * @param string $bookDes
+    * @param string $authors
     * @param string $bookPrice
     * @param UploadedFile $image - file which we will be moved
     * @param string $pathToImages - path to images directory for move
     *
     * @return boolean - successefully or not 
     */
-    public function updateBook(int $bookId, string $bookName, string $bookDes, int $bookPrice, UploadedFile $image = null , string $pathToImages = null)
+    public function updateBook(int $bookId, string $bookName, string $authors, int $bookPrice, $image, int $idCategory, string $pathToImages, string $description, $dateRelease, string $language, int $printing)
     {
         try
-        {
-            $queryBuilder = $this->connection->createQueryBuilder();
-            $queryBuilder
+        {   
+            $queryBuilderToBook = $this->connection->createQueryBuilder();
+            $queryBuilderToBook
                 ->update('books', 'b')
                 ->set('b.book_name', ':name')
-                ->set('b.description', ':des')
+                ->set('b.authors', ':auth')
                 ->set('b.price', ':price')
                 ->where('b.book_id = :id');
-            if ($image){
-                $queryBuilder->set('b.preview_img', ':img');
-                // Set hierarchy subdirectories for image and new name
-                $directory = substr(md5(microtime()), mt_rand(0, 30), 2) . DIRECTORY_SEPARATOR . substr(md5(microtime()), mt_rand(0, 30), 2);
-                $imageName = md5(microtime()) . ".jpg";
+            $queryBuilderToProperties = $this->connection->createQueryBuilder();
+            $queryBuilderToProperties
+                ->update('books_properties', 'bp')
+                ->set('bp.description', ':desc')
+                ->set('bp.date_of_release', ':date')
+                ->set('bp.language', ':lang')
+                ->set('bp.printing', ':print')
+                ->where('bp.books_book_id', ':p_id');
+            // Change preview image if it was passed
+            if ($image instanceof UploadedFile){
+                $queryBuilderToBook->set('b.preview_img', ':img');
+                // 
+                $imageName = md5(microtime()) . '.' . $this->checkExtension($image);
+                $directory = $this->generatePathToImage();
+                $fullPath = $directory . DIRECTORY_SEPARATOR . $imageName;
+
                 $this->connection->beginTransaction();
-                $oldImage = $this->connection->fetchColumn('SELECT b.preview_img FROM books b WHERE book_id = ?', array($bookId), 0);
-                if ( ! $oldImage )
+                $oldImage = $this->connection->fetchAssoc('SELECT b.book_id, b.preview_img FROM books b WHERE b.book_id = ?', array($bookId));
+                if ( ! $oldImage['book_id'] )
                     throw new \Exception("Book with id $bookId doesn't exist");
-                $stmt = $this->connection->prepare($queryBuilder);
-                $stmt->bindValue('img', $directory . DIRECTORY_SEPARATOR . $imageName);
+                $stmt = $this->connection->prepare($queryBuilderToBook);
+                $stmt->bindValue('img', $fullPath);
             }else{
                 $this->connection->beginTransaction();
-                $stmt = $this->connection->prepare($queryBuilder);
+                $stmt = $this->connection->prepare($queryBuilderToBook);
             }
+            // For book
             $stmt->bindValue('name', $bookName);
-            $stmt->bindValue('des', $bookDes);
+            $stmt->bindValue('auth', $authors);
             $stmt->bindValue('price', $bookPrice);
             $stmt->bindValue('id', $bookId);
             $stmt->execute();
-            if($image){
-                if( ! @unlink($pathToImages . $oldImage))
-                    throw new \Exception("Can't delete file");
+            // For property book
+            $stmt->bindValue('desc', $description);
+            $stmt->bindValue('date', $dateRelease);
+            $stmt->bindValue('lang', $language);
+            $stmt->bindValue('print', $printing);
+            $stmt->bindValue('p_id', $bookId);
+            $stmt->execute();
+            // Update book category
+            $this->connection->update('categories_has_books', array('categories_category_id' => $idCategory), array('books_book_id' => $bookId));
+            // move image if it was passed
+            if($image instanceof UploadedFile){
+                $pathToImages = rtrim($pathToImages, '\\');
+                if( ! @unlink($pathToImages . DIRECTORY_SEPARATOR . $oldImage['preview_img']))
+                    throw new \Exception("Can't delete file - " . $pathToImages . DIRECTORY_SEPARATOR . $oldImage['preview_img']);
                 $image->move($pathToImages . DIRECTORY_SEPARATOR . $directory, $imageName);
             }
             $this->connection->commit();
@@ -210,92 +252,98 @@ class BookRepository
 
     }
     /**
-    * Add category to categories
-    *
-    * Stored procedure is using here because query is complicated because architecture of categories table implements nested sets 
-    *
-    * @param $idParentCategory - any category must have parent category, except main category
-    * @param $nameNewCategory - name of new category, that will be add
-    *
-    * @retun boolean - procedure success
+    * @return string  - full class name of domain entity
     */
-    public function addCategory(int $idParentCategory, string $nameNewCategory)
+    protected function getDomainClass()
     {
-        try
-        {
-            $query = 'call add_category(?, ?)';
-            $stmt = $this->connection->prepare($query);
-            $stmt->bindValue(1, $idParentCategory);
-            $stmt->bindValue(2, $nameNewCategory);
-            $stmt->execute();
-            return true;
-        }catch(DBALException $exception)
-        {
-            throw $exception;
-        }
+        return Book::class;
     }
     /**
-    * Delete category from categories
-    *
-    * Stored procedure is using here because query is complicated because architecture of categories table implements nested sets 
-    *
-    * @param $idDeleteCategory - any category must have parent category, except main category
-    *
-    * @retun boolean - procedure success
+    * @return array - description of field
     */
-    public function deleteCategory(int $idDeleteCategory)
+    protected function getFieldDescription()
     {
-        try
-        {
-            $query = 'call delete_category(' . $idDeleteCategory . ')';
-            $this->connection->query($query);
-            return true;
-        }catch(DBALException $exception)
-        {
-            throw $exception;
-        }
+        return [
+            new FieldDescription('id', 'book_id', Type::INTEGER),
+            new FieldDescription('name', 'book_name', Type::STRING),
+            new FieldDescription('authors', 'authors', Type::STRING),
+            new FieldDescription('price', 'price', Type::INTEGER),
+            new FieldDescription('image', 'preview_img', Type::STRING),
+        ];
     }
-    /** 
-    * Move category
+    /**
+    * Generating path to storing images
     *
-    * Move category used in case when need change parent category
-    * 
-    * @param integer $idMovedCategories - moved categories
-    * @param integer $idNewParentCategory - new parent category
+    * Generate path  - RandomDirectory/RandomDirectory
     *
-    * @retun boolean - procedure success
+    * @return string  - path to store image
     */
-    public function moveCategory(int $idMovedCategories, int $idNewParentCategory)
+    protected function generatePathToImage()
     {
-        try
-        {
-            $query = 'call change_parent(' . $idMovedCategories . ', ' . $idNewParentCategory . ')';
-            $this->connection->query($query);
-            return true;
-        }catch(DBALException $exception)
-        {
-            throw $exception;
-        }
+        return substr(md5(microtime()), mt_rand(0, 30), 2) . DIRECTORY_SEPARATOR . substr(md5(microtime()), mt_rand(0, 30), 2);
     }
-     /** 
-    * Change order of subcategories from one category
-    * 
-    * @param integer $idMovedCategories - moved categories
-    * @param integer $idSetAfterCategories - category after that moving category will stay, if it is id parent category then category will stay at the first  place
+    /**
+    * Serialize array of paths to save in DB
     *
-    * @retun boolean - procedure success
+    * @param array $paths - array of paths 
+    *
+    * @return string
     */
-    public function changeOrder(int $idMovedCategories, int $idSetAfterCategories)
+    protected function serializePaths(array $paths)
     {
-        try
-        {
-            $query = 'call change_order(' . $idMovedCategories . ', ' . $idSetAfterCategories . ')';
-            $this->connection->query($query);
-            return true;
-        }catch(DBALException $exception)
-        {
-            throw $exception;
+        $string = '';
+        foreach($paths as $key => $path){
+            $string .= $key . ':' . $path . ';';
         }
+        return rtrim($string, ';');
+    }
+    /**
+    * Unserialize sting with paths from DB
+    *
+    * @param string $paths 
+    *
+    * @return array
+    */
+    protected function unserializePaths(string $paths)
+    {
+        $pathArray = array();
+        $array = explode(';', $paths);
+        foreach($array as $path){
+            $field = explode(':', $path);
+            $pathArray[$field[0]] = $field[1];
+        }
+        return $pathArray;
+    }
+    /**
+    * @param $result
+    * @param FieldDescription
+    * 
+    * @return mixed
+    */
+    protected function prepareValue($fieldDescription, array $result)
+    {
+        foreach($fieldDescription as $description){
+            if($description->getProperty() == 'price'){
+                $result[$description->getDBField()] = $result[$description->getDBField()] / 100;
+            }
+        }
+        return $result;
+    }
+    /**
+    * @param UploadedFile $image
+    * 
+    * @return string 
+    *
+    * @throws - InvalidArgumentException
+    */
+    protected function checkExtension(UploadedFile $image)
+    {
+        $extension = $image->guessClientExtension();
+        if( ! in_array($extension, self::ALLOWED_IMAGE_EXTENSION)){
+            $answer = implode(',', self::ALLOWED_IMAGE_EXTENSION);
+            throw new \InvalidArgumentException('Passed extension of image must be in ' . $answer);
+        }
+        return $extension;
     }
 }
 ?>

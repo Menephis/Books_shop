@@ -24,7 +24,7 @@ DELIMITER $$
 --
 -- Procedures
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `add_category` (IN `id_parent_category` INTEGER(9), IN `name_of_category` VARCHAR(45))  begin
+CREATE PROCEDURE `add_category` (IN `id_parent_category` INTEGER(9), IN `name_of_category` VARCHAR(45))  begin
 DECLARE lvl int;
 DECLARE r_key int;
 start transaction;
@@ -35,7 +35,7 @@ select parent.row, parent.right_key INTO lvl, r_key FROM categories as parent wh
 commit;
 end$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `change_order` (IN `id_moved_node` INT, IN `set_after` INT)  proc:BEGIN
+CREATE PROCEDURE `change_order` (IN `id_moved_node` INT, IN `set_after` INT)  proc:BEGIN
 -- Переменные для выбора родителя -- 
 DECLARE parent_id, parent_l_key, parent_r_key INT;
 -- Переменные выбора соседа --
@@ -100,7 +100,7 @@ START TRANSACTION;
         -- Изменение ключей дерева �
 $$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `change_parent` (IN `id_moved_node` INT, IN `id_parent_node` INT)  proc:BEGIN
+CREATE PROCEDURE `change_parent` (IN `id_moved_node` INT, IN `id_parent_node` INT)  proc:BEGIN
 -- Переменные для выбора нового родителя -- 
 DECLARE parent_row, parent_r_key, parent_l_key INT;
 -- Переменные для выбора перемещаемого узла
@@ -166,7 +166,7 @@ START TRANSACTION;
 					IF(c.right_key <= child_r_key, 
 $$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_category` (IN `id_delete_category` INT)  BEGIN
+CREATE PROCEDURE `delete_category` (IN `id_delete_category` INT)  BEGIN
 declare l_key int;
 declare r_key int;
 start transaction;

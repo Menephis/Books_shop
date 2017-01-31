@@ -43,7 +43,7 @@ $app['security.firewalls'] = array(
             'form' => true,
             'pattern' => '^.*',
             'anonymous' => true,
-            'form' => array('login_path' => '/login', 'check_path' => '/test/login_check'),
+            'form' => array('login_path' => '/login', 'check_path' => '/admin/login_check'),
             'users' => function () use ($app) {
                 return new UserProvider($app['db.connection']);
             },

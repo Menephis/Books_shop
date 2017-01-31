@@ -4,26 +4,50 @@
 <body>
     <form enctype="multipart/form-data" action="" method="POST">
         <p>
-            <label for="updateBook">Books ID for update</label>
-            <input type="text" name="updateBook" />
-        </p>
-        <p>
             <label for="BookName">Имя книги</label>
-            <input type="text" name="BookName" />
+            <input type="text" name="BookName" value="<?= ?>" />
         </p>
         <p>
-            <labe for="BookDes">Description</labe>
-            <textarea rows="10" cols="45" name="BookDes"></textarea>
+            <labe for="BookAuthors">Авторы</labe>
+            <input type="text" name="BookAuthors" />
         </p>
         <p>
-            <label for="BookPrice">Price</label>
+            <label for="BookPrice">Цена</label>
             <input type="text" name="BookPrice">
         </p>
         <p>
-            <!-- Поле MAX_FILE_SIZE должно быть указано до поля загрузки файла -->
+            <label for="BookDescription">Описание</label>
+            <textarea name="BookDescription" cols="30" rows="5"></textarea>
+        </p>
+        <p>
+            <label for="DateOfRelease">Дата выпуска</label>
+            <input type="text" name="DateOfRelease">
+        </p>
+        <p>
+            <label for="BookLanguage">Язык</label>
+            <input type="text" name="BookLanguage">
+        </p>
+        <p>
+            <label for="BookPrinting">Тираж</label>
+            <input type="text" name="BookPrinting">
+        </p>
+        <select size="1" name="idCategory">
+            <option disabled>Выберите категорию</option>
+            <?php
+                $row = 0;
+                foreach($categories as $category){?>
+                    <option value="<?= $category['category_id']?>">
+                        <?= $category['name_category'] ?>
+                    </option>
+                <?php }?>
+        </select>
+        <p>
+            <span> Каринка в каталог</span>
             <input type="hidden" name="MAX_FILE_SIZE" value="5000000" />
-            <!-- Название элемента input определяет имя в массиве $_FILES -->
-            <input name="photo" type="file" />
+            <input name="photo" type="file" /><br />
+            <span> Каринка в галерею(не более 3 изображений)</span>
+            <input type="hidden" name="MAX_FILE_SIZE" value="5000000" />
+            <input name="images[]" type="file" multiple="true" min='0' max='3'/>
         </p>
         <input type="submit">
     </form>

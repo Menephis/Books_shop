@@ -10,6 +10,8 @@ use kurapov\kurapov_validate\Masks\AuthenticationMask;
 use src\ImagesService\Image;
 use Silex\Provider\SessionServiceProvider;
 
+use Doctrine\DBAL\Types\Type;
+
 class TestControllerProvider implements ControllerProviderInterface{
     public function connect(Application $app){
         $app->register(new SessionServiceProvider());
@@ -24,6 +26,7 @@ class TestControllerProvider implements ControllerProviderInterface{
             $templateEngine = $app['template.engine']();
             $books = $db->getBooksByCat(1, 0, 20);
             $categories = $db->getCategories();
+            var_dump(Type::INTEGER);
             return $templateEngine->render(
                 'index',
                 [
