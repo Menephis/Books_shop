@@ -1,16 +1,16 @@
 {
-    "name": "kurapov/books_shop",
+    "name": "menephis/books_shop",
     "homepage": "https://github.com/Menephis/Books_shop",
     "description": "Books shop by Kurapov Pavel",
     "type": "Project",
     "require": {
         "php": ">=5.3",
         "silex/silex": "~2.0",
-        "kurapov/kurapov_validate": "dev-master",
         "symfony/security": "^3.1",
-        "doctrine/dbal": "2.5.*"
+        "doctrine/dbal": "2.5.*",
+        "menephis/mask-validator": "*"
     },
-    "license": "nope",
+    "license": "MIT",
     "authors": [
         {
             "name": "kurapov Pavel",

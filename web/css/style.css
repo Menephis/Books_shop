@@ -26,3 +26,7 @@ body{
 .blocks{
     float: left;
 }
+.books{
+    float: left;
+    margin: 15px;
+}

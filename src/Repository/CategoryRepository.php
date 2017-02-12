@@ -6,6 +6,8 @@ class CategoryRepository extends AbstractRepository
     /**
     * Get all category
     *
+    * Select all category besides main category
+    *
     * @return array $categories
     */
     public function getCategories()
@@ -116,21 +118,14 @@ class CategoryRepository extends AbstractRepository
     /**
     * Cap
     */
-    protected function getDomainClass()
+    protected function getEntityDescription():array
     {
         return null;
     }
     /**
     * Cap
     */
-    protected function getFieldDescription()
-    {
-        return null;
-    }
-    /**
-    * Cap
-    */
-    protected function prepareValue($fieldDescription, array $result)
+    protected function prepareResult(array $fieldDescription, array $result)
     {
         return null;
     }

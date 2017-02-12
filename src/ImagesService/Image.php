@@ -2,14 +2,26 @@
 namespace src\ImagesService;
 
 class Image{
-    private $file;              //Путь к файлу с исходным изображением
-    private $image;             //Исходное изображение
-    private $image_new = false;   //Изображение после масштабирования
- 
     /**
-    * Загрузка файла для обработки
+    * @var string $file - path to file 
+    */
+    private $file;
+    /**
+    * @var resource $image - current image
+    */
+    private $image;
+    /**
+    * @var string $imageType - type of passed image
+    */
+    private $imageType;
+    /*
+    * Allowed image type to processing
+    */
+    const ALLOWED_IMAGE_TYPE = ['jpeg', 'jpg', 'png', 'gif'];
+    /**
+    * DOwnload the file to process
     *
-    * @param string $file путь к файлу
+    * @param string $file - path to file
     */
     public function __construct($file)
     {
@@ -17,17 +29,26 @@ class Image{
         {
             if( ! file_exists($file)) 
                 throw new \Exception($file . " - file doesn't exist");
-            //Получаем информацию о файле
-            if( ! list($width, $height, $image_type) = getimagesize($file)) 
+            // Get imnformation about file
+            if( ! list($width, $height, $imageType) = getimagesize($file)) 
                 throw new \Exception($file . " - is not image");
-            //Создаем изображение из файла
-            switch ($image_type)
+            //Create image from filepath
+            switch ($imageType)
             {
-                case 1: $this->image = imagecreatefromgif($file); break;
-                case 2: $this->image = imagecreatefromjpeg($file);  break;
-                case 3: $this->image = imagecreatefrompng($file); break;
-                default: throw new \Exception('Image should be jpg, png or gif type');  break;
+                case 1: 
+                    $this->image = imagecreatefromgif($file);
+                    break;
+                case 2: 
+                    $this->image = imagecreatefromjpeg($file);  
+                    break;
+                case 3: 
+                    $this->image = imagecreatefrompng($file); 
+                    break;
+                default: 
+                    throw new \Exception(sprintf('Image type must be in %s', implode(',', self::ALLOWED_IMAGE_TYPE)));  
+                    break;
             }
+            $this->imageType = image_type_to_extension($imageType, FALSE);
             $this->file = $file;
         }catch(\Exception $e){
             throw new \Exception($e);
@@ -35,14 +56,15 @@ class Image{
     }
  
     /**
-     * Масштабирует исходное изображение
+     * Resize current image
      *
-     * @param int $W Ширина
-     * @param int $H Высота
+     * The image is scaled by proportion rules
+     *
+     * @param int $W - width
+     * @param int $H - height
      */
     public function resize($W, $H)
     {
-        $this->image_new = false;
  
         $X = ImageSX($this->image);
         $Y = ImageSY($this->image);
@@ -63,42 +85,91 @@ class Image{
         $W = (int)$W_NEW;
         $H = (int)$H_NEW;
         
-        $this->image_new = imagecreatetruecolor($W,$H);
-        imagecopyresampled($this->image_new, $this->image, 0, 0, 0, 0, $W, $H, $X, $Y);
+        $image = imagecreatetruecolor($W,$H);
+        if( ! imagecopyresampled($image, $this->image, 0, 0, 0, 0, $W, $H, $X, $Y))
+            throw new \Exception('Can\'t resize image');
+        $this->image = $image;
         return $this;
  
     }
- 
- 
     /**
-     * Сохранение файла
-     *
-     * @param string $file Путь к файлу (если не указан, записывает в исходный)
-     * @param int $qualiti Качество сжатие JPEG
-     */
-    public function save($file=false, $qualiti=90)
+    * Change type of image then it will be save
+    */
+    public function changeToJpeg()
     {
-        try{
-            if( ! $file || $file == $this->file) {
-                $file = $this->file;
-                if( ! $this->image_new){
-                    throw new \Exception("Can't create image");  
-                }else{
-                    if( ! ImageJpeg($this->image_new, $file, $qualiti))
-                        throw new \Exception("Can't save image");
-                }
-            }else{
-                if( ! $this->image_new){
-                    if( ! copy($this->file, $file))
-                        throw new \Exception("Can't save image"); 
-                }else{
-                    if( ! ImageJpeg($this->image_new, $file, $qualiti))
-                        throw new \Exception("Can't save image");
-                }
-            }
-        }catch(\Exception $e){
+        $this->imageType = 'jpeg';
+        return $this;
+    }
+    /**
+    * Change type of image then it will be save
+    */
+    public function changeToGif()
+    {
+        $this->imageType = 'gif';
+        return $this;
+    }
+    /**
+    * Change type of image then it will be save
+    */
+    public function changeToPng()
+    {
+        $this->imageType = 'png';
+        return $this;
+    }
+    /**
+    * Create image dependet of current type of image
+    *
+    * @param string $file - path to save image
+    * @param integer $quality - qualiti for jpeg type
+    * 
+    * @return void
+    */
+    protected function createImage($file, $qualiti)
+    {
+        try
+        {
+            switch($this->imageType)
+            {
+                case 'jpeg':
+                    $result = ImageJpeg($this->image, $file, $qualiti);
+                    break;
+                case 'gif':
+                    $result = ImageGif($this->image, $file);
+                    break;
+                case 'png':
+                    $result = ImagePng($this->image, $file);
+                    break;
+                default:
+                    throw new \Exception('Can\'t save image');
+            }  
+            if( ! $result)
+                throw new \Exception('Can\'t save image');
+        }catch(\Exception $e)
+        {
             throw $e;
         }
+        
+    }
+    /**
+     * Save image
+     *
+     * @param string $file - if will not pass then will save to current path
+     * @param int $qualiti - qualiti for JPEG TYPE
+     */
+    public function save($file = false, $qualiti = 90)
+    {
+        try
+        {
+            if( ! $file || $file === $this->file) {
+                $this->createImage($this->file, $qualiti);
+            }else{
+                $this->createImage($file, $qualiti);
+            }
+            return true;
+        }catch(\Exception $e)
+        {
+            throw $e;
+        }  
     }
 }
 ?>

@@ -31,7 +31,7 @@
             <label for="BookPrinting">Тираж</label>
             <input type="text" name="BookPrinting">
         </p>
-        <select size="1" name="idCategory">
+        <select size="5" name="idCategories[]" multiple>
             <option disabled>Выберите категорию</option>
             <?php
                 $row = 0;

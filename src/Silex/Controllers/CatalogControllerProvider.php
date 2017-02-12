@@ -23,6 +23,7 @@ class CatalogControllerProvider implements ControllerProviderInterface{
                 [
                     'categories' => $categories,
                     'books' => $books,
+                    'authorizationChecker' => $app['security.authorization_checker'],
                 ]
             );
         });
@@ -41,17 +42,18 @@ class CatalogControllerProvider implements ControllerProviderInterface{
                 'index',
                 [
                     'categories' => $categories,
-                    'books' => $books
+                    'books' => $books,
+                    'authorizationChecker' => $app['security.authorization_checker'],
                 ]
             );
         });
         $controllers->get('/detail/{idBook}', function (Request $request, $idBook) use($app){
 
             /* Определяем сервис с доступом к базе*/
-            $bookDetailRepository = $app['book.detail.repository']();
+            $bookRepository = $app['book.repository']();
             /* Определяем сервис с шаблонами */
             $templateEngine = $app['template.engine']();
-            $book = $bookDetailRepository->getBookDetail($idBook);
+            $book = $bookRepository->getBookDetail($idBook);
             return $templateEngine->render(
                 'bookDetail',
                 [

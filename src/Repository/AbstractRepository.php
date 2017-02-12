@@ -8,30 +8,24 @@ use src\Repository\FieldDescription;
 abstract class AbstractRepository
 {
     /**
-    * @var - resourse $connection - stores connection to DB
+    * @var resourse $connection - stores connection to DB
     */
     protected $connection;
     /**
-    * @param - resourse $connection
+    * @param resourse $connection
     */
     function __construct(Connection $connection)
     {
         $this->connection = $connection;
     }
     /**
-    * Get entity
-    *
-    * Should return domain class that present entity in busines logic
-    */
-    abstract protected function getDomainClass();
-    /**
     * Description 
     *
-    * Should return array that contains query result fields appropriate propertys domain entity ($propertyName => $queryFieldName)
+    * Should return array that contains names of domain class and appropriate it array of FieldDescriptions
     *
     * @return array
     */
-    abstract protected function getFieldDescription();
+    abstract protected function getEntityDescription():array;
     /**
     * Create object from assoc array
     *
@@ -41,7 +35,7 @@ abstract class AbstractRepository
     *
     * @return object - domain object
     */
-    protected function objectFromAssoc(array $result)
+    protected function objectFromAssoc(array $result, string $domainClass)
     {
         $injectValue = function($descriptions, $result){
             foreach($descriptions  as $description){
@@ -49,10 +43,14 @@ abstract class AbstractRepository
             }
             return $this;
         };
-        $domainObject = (new \ReflectionClass($this->getDomainClass()))->newInstanceWithoutConstructor();
-        $result = $this->prepareValue($this->getFieldDescription(), $result);
+        // Return type declarations of getEntityDescription() makes sure that we get array
+        $entityDescription = $this->getEntityDescription();
+        if( ! array_key_exists($domainClass, $entityDescription))
+            throw new \Exception( $domainClass . 'does not exist in entity description' ); 
+        $domainObject = (new \ReflectionClass($domainClass))->newInstanceWithoutConstructor();
+        $result = $this->prepareResult($entityDescription[$domainClass], $result);
         $injectValue = $injectValue->bindTo($domainObject, $domainObject);
-        return $injectValue($this->getFieldDescription(), $result);
+        return $injectValue($entityDescription[$domainClass], $result);
     }
     /**
     * Create array of object from array of assoc array
@@ -61,11 +59,11 @@ abstract class AbstractRepository
     *
     * @return array - return array of domain objects
     */
-    protected function objectsFromArrayOfAssoc(array $result)
+    protected function objectsFromArrayOfAssoc(array $result, string $domainClass)
     {
         $objects = array();
         foreach($result as $assoc){
-            $objects[] = $this->objectFromAssoc($assoc);
+            $objects[] = $this->objectFromAssoc($assoc, $domainClass);
         }
         return $objects;
     }
@@ -75,10 +73,10 @@ abstract class AbstractRepository
     * Do something if you need or just return result
     *
     * @param mixed $result
-    * @param FieldDescription
+    * @param array $fieldDescription - array FieldDescription
     *
-    * @return mixed
+    * @return array
     */
-    abstract protected function prepareValue($fieldDescription, array $result);
+    abstract protected function prepareResult(array $fieldDescription, array $result);
 }
 ?>

@@ -11,12 +11,13 @@
 <body>
     <div class="all">
         <div id="header">
+        
         </div>
         <div id="content">
+            <a href="/books-shop/web/admin/"> Админка</a>
             <div class="blocks">
                 <?php
                     $row = 0;
-                    unset($categories[0]);
                     foreach($categories as $category){
 
                         if($row < $category['row']){
@@ -40,13 +41,26 @@
             <div class="blocks">
                 <ol>
                     <?php
-                foreach($books as $book){
-                    echo "
-                        <li><p><a href='detail/". $book->getId() . "'>" . $book->getName() . "</a><br /> <img src='" . $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book->getImage() ."'></p><br /><span> Цена: " . $book->getPrice() . "</span></li>
+                    foreach($books as $book){ 
+                        ?>
+                        <li class='books' >
+                            <p>
+                                <a href="detail/<?= $book->getId();?>"><?= $book->getName();?></a><br /> 
+                                <img src='<?= $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book->getImage();?>'>
+                            </p><br />
+                            <span> Цена: <?= $book->getPrice();?>"</span><br />
+                            <?php
+                            if($authorizationChecker->isGranted('ROLE_ADMIN')){
+                            ?>
+                                <a href='/books-shop/web/admin/update/<?= $book->getId();?>'>Редактировать</a>"
+                            <?php 
+                            }?>
+                        </li>
                         
-                    ";
-                }
-                ?>
+                    
+                    <?php 
+                    }
+                    ?>
                 </ol>
             </div>
         </div>

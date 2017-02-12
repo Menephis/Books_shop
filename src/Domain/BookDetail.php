@@ -25,9 +25,13 @@ class BookDetail extends Book
     */
     protected $booksImages;
     /**
+    * @var int $bookCategory
+    */
+    protected $bookCategories;
+    /**
     * @return void
     */
-    public function __construct(int $id, string $name, string $authors, int $price, string $image, string $description, $dateRelease, string $language, int $printing, string $booksImages)
+    public function __construct(int $id, string $name, string $authors, int $price, string $image, string $description, $dateRelease, string $language, int $printing, string $booksImages, array $bookCategory)
     {
         parent::__construct($id, $name, $authors, $price, $image);
         $this->description = $description;
@@ -55,6 +59,10 @@ class BookDetail extends Book
     public function getBookImages()
     {
         return $this->booksImages;
+    }
+    public function getBookCategories()
+    {
+        return $this->bookCategories;
     }
 }
 ?>

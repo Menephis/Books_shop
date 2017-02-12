@@ -19,7 +19,6 @@ class RepositoryServiceProvider extends AbstractServiceProvider{
             'BookRepository',
             'TemplateEngine',
             'CategoryRepository',
-            'BookDetailRepository',
         ];
     }
     /**
@@ -32,18 +31,6 @@ class RepositoryServiceProvider extends AbstractServiceProvider{
     protected function registerBookRepository(Application $app){
         $app['book.repository'] = $app->protect(function() use($app){
             return new BookRepository($app['db.connection']);
-        });
-    }
-    /**
-    * Register BookDetailrepository
-    *
-    * @param Application @app
-    *
-    * @return void
-    */
-    protected function registerBookDetailRepository(Application $app){
-        $app['book.detail.repository'] = $app->protect(function() use($app){
-            return new BookDetailRepository($app['db.connection']);
         });
     }
     /**

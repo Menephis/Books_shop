@@ -38,14 +38,14 @@ class AdminControllerProvider implements ControllerProviderInterface{
                 $printing = $request->get('BookPrinting');
                 $image = $request->files->get('photo');
                 $files = $request->files->get('images');
-                $idCategory = $request->get('idCategory');
+                $idCategories = $request->get('idCategories');
                 (new Image($image->getPathName()))->resize(150, 100)->save();
                 foreach($files as $file){
                     (new Image($file->getPathName()))->resize(150, 100)->save();;
                 }
                 // Запись в базу
-                $dbBook->saveBook($name, $authors, (int)$price, $image, $idCategory, $app['config']['paths']['path.to.images'], $description, 
-                           $dateOfRelease, $language, $printing, $files);
+                $dbBook->saveBook($name, $authors, (int)$price, $image, $idCategories, $description, 
+                           $dateOfRelease, $language, $printing, $files, $app['config']['paths']['path.to.images']);
                 //return $app->redirect('/books-shop/web/admin');
             }
             return $templateEngine->render('AddBook', [
@@ -63,24 +63,36 @@ class AdminControllerProvider implements ControllerProviderInterface{
             }
             return $templateEngine->render('deleteBook');
         });
-        $controllers->match('/update', function (Request $request) use($app){
+        $controllers->match('/update/{idBook}', function (Request $request, $idBook) use($app){
             /* Определяем сервис с доступом к базе*/
-            $db = $app['book.repository']();
+            $dbBook = $app['book.repository']();
+            $dbCategories = $app['category.repository']();
             /* Определяем сервис с шаблонами */
             $templateEngine = $app['template.engine']();
             if(($_SERVER['REQUEST_METHOD'] == 'POST')){
-                $id = $request->get('updateBook');
-                $price = $request->get('BookPrice');
                 $name = $request->get('BookName');
-                $authtors = $request->get('BookAuthors');
-                $file = $request->files->get('photo');
+                $authors = $request->get('BookAuthors');
+                $price = $request->get('BookPrice');
+                $description = $request->get('BookDescription');
+                $dateOfRelease = $request->get('DateOfRelease');
+                $language = $request->get('BookLanguage');
+                $printing = $request->get('BookPrinting');
+                $image = $request->files->get('photo');
+                $idCategories = $request->get('idCategories');
                 // Масштабирование изображения
-                $image = new Image($file->getPathname());
-                $image->resize(150, 100)->save();
+                if($image){
+                    (new Image($image->getPathName()))->resize(150, 100)->save();
+                }else{
+                    $image = null;
+                }
                 // UpdateBook
-                $db->updateBook((int)$id, $name, $authtors, (int)$price, $file, $app['config']['paths']['path.to.images']);
+                $dbBook->updateBook($idBook, $name, $authors, $price, $image, $idCategories, $description, 
+                                    $dateOfRelease, $language, $printing, $app['config']['paths']['path.to.images']);
             }
-            return $templateEngine->render('UpdateBook');
+            return $templateEngine->render('UpdateBook', [
+                'book' => $dbBook->getBookDetail($idBook), 
+                'categories' => $dbCategories->getCategories(),
+            ]);
         });
         
         
@@ -144,7 +156,7 @@ class AdminControllerProvider implements ControllerProviderInterface{
                 $setAfter = $request->get('SetAfterIdCategory');
                 
                 $db->changeOrder($id, $setAfter);
-                //return $app->redirect('/books-shop/web/admin');
+                return $app->redirect('/books-shop/web/admin');
             }
             $categories = $db->getCategories();
             return $templateEngine->render('changeOrderCategory', [ 'categories' => $categories]);
