@@ -15,7 +15,8 @@
                 <h4><?= $book->getName(); ?></h4>
                 <img src='<?= $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $book->getImage();?>'><br />
                 <span>Дата выпуска: <?= $book->getDateRelease(); ?></span><br />
-                <span> Автор: <?= $book->getAuthors();?><br /> Язык: <?= $book->getlanguage(); ?></span>
+                <span> Автор: <?= $book->getAuthors();?><br /> Язык: <?= $book->getlanguage(); ?></span><br />
+                <span> Дата выпуска : </span><?php $book->getDateRelease(); ?>
                 <h3>Категории книги:</h3>
                 <ul>
                 <?php
@@ -26,14 +27,6 @@
                     }
                 ?>
                 </ul>
-                <h3>Дополнительные изображения</h3>
-                <?php 
-                    foreach($book->getBookImages() as $image){
-                        ?>
-                        <img src='<?= $this->GetSourse() . DIRECTORY_SEPARATOR . 'images/' . $image;?>'>
-                        <?php   
-                    }
-                ?>
             </div>
         </div>
         <div id="footer">

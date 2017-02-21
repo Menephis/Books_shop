@@ -52,7 +52,8 @@
                             <?php
                             if($authorizationChecker->isGranted('ROLE_ADMIN')){
                             ?>
-                                <a href='/books-shop/web/admin/update/<?= $book->getId();?>'>Редактировать</a>"
+                                <a href='/books-shop/web/admin/update/<?= $book->getId();?>'>Редактировать</a><br />
+                                <a href='/books-shop/web/admin/delete/<?= $book->getId();?>'>Удалить</a>
                             <?php 
                             }?>
                         </li>

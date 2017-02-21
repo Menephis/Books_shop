@@ -10,7 +10,7 @@ use Doctrine\DBAL\Types\Type;
 
 class BookRepository extends AbstractRepository
 {
-    const ALLOWED_IMAGE_EXTENSION = array('jpeg', 'jpg');
+    const ALLOWED_IMAGE_EXTENSION = array('jpeg', 'jpg', 'png');
     /**
     * Get books by category
     *
@@ -57,7 +57,7 @@ class BookRepository extends AbstractRepository
         {
             $queryBuilder = $this->connection->createQueryBuilder();
             $queryBuilder
-                ->select('b.book_id', 'b.book_name', 'b.authors', 'b.price', 'b.preview_img', 'p.description', 'p.date_of_release', 'p.language', 'p.printing', 'p.books_img', 'GROUP_CONCAT(CONCAT(c.category_id, \':\', c.name_category) SEPARATOR \';\') as categories')
+                ->select('b.book_id', 'b.book_name', 'b.authors', 'b.price', 'b.preview_img', 'p.description', 'p.date_of_release', 'p.language', 'p.printing', 'GROUP_CONCAT(CONCAT(c.category_id, \':\', c.name_category) SEPARATOR \';\') as categories')
                 ->from('books', 'b')
                 ->innerJoin('b', 'books_properties', 'p', 'p.books_book_id = b.book_id')
                 ->innerJoin('b', 'categories_has_books', 'c_h_b', 'b.book_id = c_h_b.books_book_id')
@@ -89,12 +89,11 @@ class BookRepository extends AbstractRepository
     * @param int $dateRelease
     * @param string $language
     * @param int $printing
-    * @param array $images
     * @param string $destinationPath - destination directory for move
     *
     * @return boolean - successeful/failed
     */
-    public function saveBook(string $bookName, string $authors, int $bookPrice, UploadedFile $image, array $idCategories, string $description, $dateRelease, string $language, int $printing, array $images, string $destinationPath)
+    public function saveBook(string $bookName, string $authors, int $bookPrice, UploadedFile $image, array $idCategories, string $description, $dateRelease, string $language, int $printing, string $destinationPath)
     {
         try
         {   
@@ -103,14 +102,6 @@ class BookRepository extends AbstractRepository
             $directory = $this->generatePathToImage();
             $fullPath = $directory . DIRECTORY_SEPARATOR . $imageName;
             
-            if(count($images) > 0){
-                $createPaths = function(UploadedFile $someImage){
-                    return $this->generatePathToImage() . DIRECTORY_SEPARATOR . md5(microtime()) . '.' . $this->checkExtension($someImage);
-                };
-                $pathToImages = array_map($createPaths, $images);
-            }else{
-                $pathToImages = array();
-            }
             // Creating record in database
             $queryBuilderToBooks = $this->connection->createQueryBuilder();
             $queryBuilderToBooks
@@ -132,8 +123,7 @@ class BookRepository extends AbstractRepository
                         'description' => ':desc',
                         'date_of_release' => ':date',
                         'language' => ':lang',
-                        'printing' => ':print',
-                        'books_img' => ':imgs',
+                        'printing' => ':print'
                     ]
                 );
             $this->connection->beginTransaction();
@@ -151,10 +141,9 @@ class BookRepository extends AbstractRepository
             $stmt = $this->connection->prepare($queryBuilderToProperties);
             $stmt->bindValue('id', $bookId, Type::INTEGER);
             $stmt->bindValue('desc', $description, Type::STRING);
-            $stmt->bindValue('date', $dateRelease, Type::ITEGER);
+            $stmt->bindValue('date', $dateRelease, Type::INTEGER);
             $stmt->bindValue('lang', $language, Type::STRING);
             $stmt->bindValue('print', $printing, Type::INTEGER);
-            $stmt->bindValue('imgs', $this->serializeArray($pathToImages), Type::STRING);
             $stmt->execute();
             // Third query
             foreach($idCategories as $idCategory){
@@ -166,13 +155,6 @@ class BookRepository extends AbstractRepository
             $this->connection->insert('categories_has_books', array('categories_category_id' => $idMainCategory, 'books_book_id' => $bookId));
             // For preview image
             $image->move($destinationPath . DIRECTORY_SEPARATOR . $directory, $imageName);
-            // For galery image
-            foreach($pathToImages as $key => $path){
-                $imgName = basename($path);
-                $dir = str_replace($imgName, '', $path);
-                $images[$key]->move(realpath($destinationPath) . DIRECTORY_SEPARATOR . $dir, $imgName);
-            }
-            
             $this->connection->commit();
             return true;
         }catch(\InvalidArgumentException $exception)
@@ -343,7 +325,6 @@ class BookRepository extends AbstractRepository
                 new FieldDescription('dateRelease', 'date_of_release', Type::DATE),
                 new FieldDescription('language', 'language', Type::STRING),
                 new FieldDescription('printing', 'printing', Type::INTEGER),
-                new FieldDescription('booksImages', 'books_img', Type::STRING),
                 new FieldDescription('bookCategories', 'categories', Type::STRING),
             ],
         );
@@ -404,9 +385,6 @@ class BookRepository extends AbstractRepository
                 case 'price':
                     $result[$description->getDBField()] = $result[$description->getDBField()] / 100;
                     break;
-                case 'booksImages':
-                    $result[$description->getDBField()] = $this->unserializeString($result[$description->getDBField()]);
-                    break;
                 case 'bookCategories':
                     $result[$description->getDBField()] = $this->unserializeString($result[$description->getDBField()]);
                     break;
@@ -430,5 +408,6 @@ class BookRepository extends AbstractRepository
         }
         return $extension;
     }
+
 }
 ?>

@@ -1,0 +1,51 @@
+BookName: 
+  method: latinCyrillicText
+  arguments:
+    0: 1 
+    1: 50
+  required: true
+  
+BookAuthors:
+  method: latinCyrillicText
+  arguments:
+    0: 1
+    1: 100
+  required: true
+  
+BookPrice:
+  method: intPositive
+  arguments: null
+  required: true
+  
+BookDescription:
+  method: latinCyrillicLongText
+  arguments: 
+    0: 1
+    1: 1000
+  required: true
+  
+DateOfRelease:
+  method: yearRanged
+  arguments:
+    0: 1900
+    1: null
+  required: true
+  
+BookLanguage:
+  method: latinCyrillicText
+  arguments:
+    0: 3
+    1: 15
+  required: true
+
+BookPrinting:
+  method: intPositive
+  arguments: null
+  required: false
+  
+idCategories:
+  method: intFromList
+  arguments: null
+  required: true
+
+

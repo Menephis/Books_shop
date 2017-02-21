@@ -16,7 +16,7 @@ $config = [
         'path.to.templates' => __DIR__ . '/../../src/Templates',
         'path.to.web' => '/books-shop/web',
         'path.to.images' => __DIR__ . '/../../web/images/',
-
+        'path.to.validate.masks' => __DIR__ . '/../../src/Validator/Masks',
     ],
     'security' => [
         'parameter' => 'booksshop%$!',

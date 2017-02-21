@@ -50,9 +50,6 @@
             <span> Загрузить новое изображение в каталог </span>
             <input type="hidden" name="MAX_FILE_SIZE" value="5000000" />
             <input name="photo" type="file" /><br />
-            <span> Каринка в галерею(не более 3 изображений)</span>
-            <input type="hidden" name="MAX_FILE_SIZE" value="5000000" />
-            <input name="images[]" type="file" multiple="true" min='0' max='3'/>
         </p>
         <input type="submit">
     </form>

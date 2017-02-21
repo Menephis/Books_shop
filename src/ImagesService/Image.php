@@ -28,10 +28,10 @@ class Image{
         try
         {
             if( ! file_exists($file)) 
-                throw new \Exception($file . " - file doesn't exist");
+                throw new ImageException($file . " - file doesn't exist");
             // Get imnformation about file
             if( ! list($width, $height, $imageType) = getimagesize($file)) 
-                throw new \Exception($file . " - is not image");
+                throw new ImageException("Passed file is not image");
             //Create image from filepath
             switch ($imageType)
             {
@@ -45,13 +45,13 @@ class Image{
                     $this->image = imagecreatefrompng($file); 
                     break;
                 default: 
-                    throw new \Exception(sprintf('Image type must be in %s', implode(',', self::ALLOWED_IMAGE_TYPE)));  
+                    throw new ImageException(sprintf('Image type must be in %s', implode(',', self::ALLOWED_IMAGE_TYPE)));  
                     break;
             }
             $this->imageType = image_type_to_extension($imageType, FALSE);
             $this->file = $file;
-        }catch(\Exception $e){
-            throw new \Exception($e);
+        }catch( ImageException $e){
+            throw $e;
         }
     }
  
@@ -87,7 +87,7 @@ class Image{
         
         $image = imagecreatetruecolor($W,$H);
         if( ! imagecopyresampled($image, $this->image, 0, 0, 0, 0, $W, $H, $X, $Y))
-            throw new \Exception('Can\'t resize image');
+            throw new ImageException('Can\'t resize image');
         $this->image = $image;
         return $this;
  
@@ -140,11 +140,11 @@ class Image{
                     $result = ImagePng($this->image, $file);
                     break;
                 default:
-                    throw new \Exception('Can\'t save image');
+                    throw new ImageException('Can\'t save image');
             }  
             if( ! $result)
-                throw new \Exception('Can\'t save image');
-        }catch(\Exception $e)
+                throw new ImageException('Can\'t save image');
+        }catch(ImageException $e)
         {
             throw $e;
         }
@@ -166,7 +166,7 @@ class Image{
                 $this->createImage($file, $qualiti);
             }
             return true;
-        }catch(\Exception $e)
+        }catch( ImageException $e)
         {
             throw $e;
         }  

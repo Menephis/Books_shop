@@ -28,6 +28,7 @@ class DBMask extends AbstractMask
         }else{
             throw new \Exception(sprintf('YAML mask %s doesn\'t exists on path %s', $maskName, $path));
         }
+        return $this;
     }
 }
 ?>

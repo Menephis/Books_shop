@@ -19,8 +19,6 @@
             <h4>BOOKS</h4>
             <ul>
                 <li><a href="addbook">add book</a></li>
-                <li><a href="delete">delete book</a></li>
-                <li><a href="/books-shop/web/catalog/">update</a></li>
             </ul>
             <hr /> 
             <h4>Category</h4>

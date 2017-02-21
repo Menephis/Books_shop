@@ -3,10 +3,12 @@ namespace src\Silex\Controllers;
 
 use Silex\Application;
 use Silex\Api\ControllerProviderInterface;
-use Symfony\Component\HttpFoundation\Request;
-use kurapov\kurapov_validate\Validator\Validator;
-use src\ImagesService\Image;
 use Silex\Provider\SessionServiceProvider;
+use Symfony\Component\HttpFoundation\Request;
+
+use src\ImagesService\{Image, ImageException };
+use src\Validator\{ DBMask, BookValidator };
+use Menephis\MaskValidator\Validator\ValidatorViewHelper;
 
 class AdminControllerProvider implements ControllerProviderInterface{
     public function connect(Application $app){
@@ -20,82 +22,143 @@ class AdminControllerProvider implements ControllerProviderInterface{
                 'AdminPannel'
             );
         });
-        
+        /*
+        * 
+        * Add Book
+        *
+        */
         $controllers->match('/addbook', function (Request $request) use($app){
-            /* Определяем сервис с доступом к базе*/
-            $dbBook = $app['book.repository']();
-            $dbCategory = $app['category.repository']();
-            /* Определяем сервис с шаблонами */
-            $templateEngine = $app['template.engine']();
-            
-            if(($_SERVER['REQUEST_METHOD'] == 'POST')){
-                $name = $request->get('BookName');
-                $authors = $request->get('BookAuthors');
-                $price = $request->get('BookPrice');
-                $description = $request->get('BookDescription');
-                $dateOfRelease = $request->get('DateOfRelease');
-                $language = $request->get('BookLanguage');
-                $printing = $request->get('BookPrinting');
-                $image = $request->files->get('photo');
-                $files = $request->files->get('images');
-                $idCategories = $request->get('idCategories');
-                (new Image($image->getPathName()))->resize(150, 100)->save();
-                foreach($files as $file){
-                    (new Image($file->getPathName()))->resize(150, 100)->save();;
+            try{
+                /* Определяем сервис с доступом к базе*/
+                $dbBook = $app['book.repository']();
+                $dbCategory = $app['category.repository']();
+                /* Определяем сервис с шаблонами */
+                $templateEngine = $app['template.engine']();
+                // Формирование вывода 
+                $toOutput = [
+                    'categories' => $dbCategory->getCategories(),
+                ];
+                if( $_SERVER['REQUEST_METHOD'] == 'POST' ){
+                    // Загружаем маску валидации
+                    $dbMask = (new DBMask($app['config']['paths']['path.to.validate.masks']))->fastLoadYaml('SaveBook.yaml');
+                    $bookValidator = new BookValidator($dbMask);
+                    // Валидируем
+                    $validatedData = $bookValidator->validate($_POST);
+                    $image = $request->files->get('photo');
+                    $toOutput['viewHelper'] = new ValidatorViewHelper($validatedData);; 
+                    // Валидация и масштабирование изображения
+                    if( isset($image) ){
+                        (new Image($image->getPathName()))->resize(250, 125)->save();
+                        $toOutput['validImage'] = true;
+                    }else{
+                        $toOutput['validImage'] = false;
+                        $toOutput['imageError'] = 'Image isn\'t sent';
+                    } 
+                    // Если данные или изображение не прошли проверку возвращаем их обратно
+                    if ( $bookValidator->isValid() and $toOutput['validImage'] ) {
+                        // Запись в базу
+                        $dbBook->saveBook(
+                            $validatedData['BookName']->getValidedData(), 
+                            $validatedData['BookAuthors']->getValidedData(), 
+                            $validatedData['BookPrice']->getValidedData(),
+                            $image,
+                            $validatedData['idCategories']->getValidedData(),
+                            $validatedData['BookDescription']->getValidedData(), 
+                            $validatedData['DateOfRelease']->getValidedData(), 
+                            $validatedData['BookLanguage']->getValidedData(), 
+                            $validatedData['BookPrinting']->getValidedData(), 
+                            $app['config']['paths']['path.to.images']);
+                        return $app->redirect('/books-shop/web/admin');
+                    }else{
+                        return $templateEngine->render('AddBook', $toOutput);
+                    }
                 }
-                // Запись в базу
-                $dbBook->saveBook($name, $authors, (int)$price, $image, $idCategories, $description, 
-                           $dateOfRelease, $language, $printing, $files, $app['config']['paths']['path.to.images']);
-                //return $app->redirect('/books-shop/web/admin');
+                $toOutput['viewHelper'] = new ValidatorViewHelper();
+                $toOutput['validImage'] = true;
+                return $templateEngine->render('AddBook', $toOutput);
+            }catch( ImageException $e){
+                $toOutput['validImage'] = false;
+                $toOutput['imageError'] = $e->getMessage();
+                return $templateEngine->render('AddBook', $toOutput);
             }
-            return $templateEngine->render('AddBook', [
-                'categories' => $dbCategory->getCategories(),
-            ]);
         });
-        $controllers->match('/delete', function (Request $request) use($app){
+        /*
+        * 
+        * Delete Book
+        *
+        */
+        $controllers->match('/delete/{idBook}', function (Request $request, $idBook) use($app){
             /* Определяем сервис с доступом к базе*/
             $db = $app['book.repository']();
-            /* Определяем сервис с шаблонами */
-            $templateEngine = $app['template.engine']();
-            if(($_SERVER['REQUEST_METHOD'] == 'POST')){
-                $id = $request->get('deleteBook');
-                $db->deleteBook($id, $app['config']['paths']['path.to.images']);
-            }
-            return $templateEngine->render('deleteBook');
+            $db->deleteBook($idBook, $app['config']['paths']['path.to.images']);
+            return $app->redirect('/books-shop/web/catalog');
         });
+        /*
+        * 
+        * Update Book
+        *
+        */
         $controllers->match('/update/{idBook}', function (Request $request, $idBook) use($app){
-            /* Определяем сервис с доступом к базе*/
-            $dbBook = $app['book.repository']();
-            $dbCategories = $app['category.repository']();
-            /* Определяем сервис с шаблонами */
-            $templateEngine = $app['template.engine']();
-            if(($_SERVER['REQUEST_METHOD'] == 'POST')){
-                $name = $request->get('BookName');
-                $authors = $request->get('BookAuthors');
-                $price = $request->get('BookPrice');
-                $description = $request->get('BookDescription');
-                $dateOfRelease = $request->get('DateOfRelease');
-                $language = $request->get('BookLanguage');
-                $printing = $request->get('BookPrinting');
-                $image = $request->files->get('photo');
-                $idCategories = $request->get('idCategories');
-                // Масштабирование изображения
-                if($image){
-                    (new Image($image->getPathName()))->resize(150, 100)->save();
-                }else{
-                    $image = null;
+            try{
+                /* Определяем сервис с доступом к базе*/
+                $dbBook = $app['book.repository']();
+                $dbCategory = $app['category.repository']();
+                /* Определяем сервис с шаблонами */
+                $templateEngine = $app['template.engine']();
+                $toOutput = [
+                        'categories' => $dbCategory->getCategories(),
+                ];
+                if(($_SERVER['REQUEST_METHOD'] == 'POST')){
+                    // Загружаем маску валидации
+                    $dbMask = (new DBMask($app['config']['paths']['path.to.validate.masks']))->fastLoadYaml('SaveBook.yaml');
+                    $bookValidator = new BookValidator($dbMask);
+                    // Валидируем
+                    $validatedData = $bookValidator->validate($_POST);
+                    $image = $request->files->get('photo');
+                    $toOutput['viewHelper'] = new ValidatorViewHelper($validatedData);; 
+                    // Валидация и масштабирование изображения
+                    if( isset($image) ){
+                        (new Image($image->getPathName()))->resize(250, 125)->save();
+                        $toOutput['validImage'] = true;
+                    }else{
+                        $toOutput['validImage'] = false;
+                        $toOutput['imageError'] = 'Image isn\'t sent';
+                    } 
+                    // Если данные или изображение не прошли проверку возвращаем их обратно
+                    if ( $bookValidator->isValid() and $toOutput['validImage'] ) {
+                        // UpdateBook
+                        $dbBook->saveBook(
+                            $idBook,
+                            $validatedData['BookName']->getValidedData(), 
+                            $validatedData['BookAuthors']->getValidedData(), 
+                            $validatedData['BookPrice']->getValidedData(),
+                            $image,
+                            $validatedData['idCategories']->getValidedData(),
+                            $validatedData['BookDescription']->getValidedData(), 
+                            $validatedData['DateOfRelease']->getValidedData(), 
+                            $validatedData['BookLanguage']->getValidedData(), 
+                            $validatedData['BookPrinting']->getValidedData(), 
+                            $app['config']['paths']['path.to.images']);
+                        return $app->redirect('/books-shop/web/admin');
+                    }else{
+                        return $templateEngine->render('UpdateBook', $toOutput);
+                    }
                 }
-                // UpdateBook
-                $dbBook->updateBook($idBook, $name, $authors, $price, $image, $idCategories, $description, 
-                                    $dateOfRelease, $language, $printing, $app['config']['paths']['path.to.images']);
+                $toOutput['viewHelper'] = new ValidatorViewHelper();
+                $toOutput['validImage'] = true;
+                $toOutput['book'] = $dbBook->getBookDetail($idBook);
+                return $templateEngine->render('UpdateBook', $toOutput);
+            }catch( ImageException $e){
+                $toOutput['validImage'] = false;
+                $toOutput['imageError'] = $e->getMessage();
+                return $templateEngine->render('AddBook', $toOutput);
             }
-            return $templateEngine->render('UpdateBook', [
-                'book' => $dbBook->getBookDetail($idBook), 
-                'categories' => $dbCategories->getCategories(),
-            ]);
         });
-        
-        
+        /*
+        * 
+        * Add category
+        *
+        */
         $controllers->match('/addcategory', function (Request $request) use($app){
             /* Определяем сервис с доступом к базе*/
             $db = $app['category.repository']();
@@ -112,7 +175,11 @@ class AdminControllerProvider implements ControllerProviderInterface{
             $categories = $db->getCategories();
             return $templateEngine->render('addCategory', [ 'categories' => $categories]);
         });
-        
+        /*
+        * 
+        * Delete category
+        *
+        */
         $controllers->match('/deletecategory', function (Request $request) use($app){
             /* Определяем сервис с доступом к базе*/
             $db = $app['category.repository']();
@@ -127,7 +194,11 @@ class AdminControllerProvider implements ControllerProviderInterface{
             $categories = $db->getCategories();
             return $templateEngine->render('deleteCategory', [ 'categories' => $categories]);
         });
-        
+        /*
+        * 
+        * move category
+        *
+        */
         $controllers->match('/movecategory', function (Request $request) use($app){
             /* Определяем сервис с доступом к базе*/
             $db = $app['category.repository']();
@@ -144,7 +215,11 @@ class AdminControllerProvider implements ControllerProviderInterface{
             $categories = $db->getCategories();
             return $templateEngine->render('moveCategory', [ 'categories' => $categories]);
         });
-        
+        /*
+        * 
+        * Change order Book
+        *
+        */
         $controllers->match('/changeordercategory', function (Request $request) use($app){
             /* Определяем сервис с доступом к базе*/
             $db = $app['category.repository']();
